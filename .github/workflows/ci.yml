@@ -13,6 +13,7 @@ permissions:
   contents: read
 
 jobs:
+
   test:
     runs-on: ubuntu-latest
 
@@ -31,43 +32,33 @@ jobs:
       - name: Run tests
         run: pytest
 
-  debug-oidc:
+
+  build-and-scan:
+    needs: test
     runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
-      - name: Inspect OIDC claims
-        shell: bash
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
         run: |
-          set -e
+          docker build \
+            -t python-eks-gitops:${{ github.sha }} .
 
-          TOKEN=$(curl -sS \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL" \
-            | jq -r '.value')
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: python-eks-gitops:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
-          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f 2)
 
-          # Add padding required by base64
-          case $((${#PAYLOAD} % 4)) in
-            2) PAYLOAD="${PAYLOAD}==" ;;
-            3) PAYLOAD="${PAYLOAD}=" ;;
-          esac
-
-          echo "$PAYLOAD" | base64 -d | jq '{
-            iss,
-            aud,
-            sub,
-            repository,
-            repository_owner,
-            ref,
-            event_name
-          }'
-  build-and-push:
-    needs: test
+  push-to-ecr:
+    needs: build-and-scan
     runs-on: ubuntu-latest
 
     steps:
