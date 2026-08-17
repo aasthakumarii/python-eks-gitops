@@ -31,7 +31,6 @@ jobs:
       - name: Run tests
         run: pytest
 
-
   debug-oidc:
     runs-on: ubuntu-latest
 
@@ -80,6 +79,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::755729228993:role/GitHubActions-ECR-Push
           aws-region: ap-south-1
+          audience: sts.amazonaws.com
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
