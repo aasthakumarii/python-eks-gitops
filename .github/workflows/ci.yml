@@ -31,6 +31,18 @@ jobs:
       - name: Run tests
         run: pytest
 
+  debug-oidc:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Get OIDC token
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN is available"
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
