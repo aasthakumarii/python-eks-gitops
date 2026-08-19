@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -11,10 +12,21 @@ on:
 permissions:
   id-token: write
   contents: read
+  actions: write
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: python-eks-gitops
+  ECR_REGISTRY: 755729228993.dkr.ecr.ap-south-1.amazonaws.com
+
 
 jobs:
 
+  # --------------------------------------------------
+  # 1. Python tests
+  # --------------------------------------------------
   test:
+    name: Python Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -33,7 +45,11 @@ jobs:
         run: pytest
 
 
+  # --------------------------------------------------
+  # 2. Build + Trivy security scan
+  # --------------------------------------------------
   build-and-scan:
+    name: Build and Security Scan
     needs: test
     runs-on: ubuntu-latest
 
@@ -44,20 +60,24 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t python-eks-gitops:${{ github.sha }} .
+            -t ${{ env.ECR_REPOSITORY }}:${{ github.sha }} .
 
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: python-eks-gitops:${{ github.sha }}
+          image-ref: ${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           format: table
-          exit-code: '1'
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
 
 
+  # --------------------------------------------------
+  # 3. Push image to ECR
+  # --------------------------------------------------
   push-to-ecr:
+    name: Push Image to ECR
     needs: build-and-scan
     runs-on: ubuntu-latest
 
@@ -69,8 +89,11 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::755729228993:role/GitHubActions-ECR-Push
-          aws-region: ap-south-1
-          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+          audience: https://github.com/aasthakumarii
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -78,9 +101,38 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:${{ github.sha }} .
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
 
       - name: Push Docker image
         run: |
           docker push \
-            755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:${{ github.sha }}
+            $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+
+  # --------------------------------------------------
+  # 4. Trigger Terraform only after CI succeeds
+  # --------------------------------------------------
+  trigger-terraform:
+    name: Trigger Terraform
+    needs: push-to-ecr
+
+    # Terraform should only automatically run after
+    # a successful push to main.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Terraform workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run terraform.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f action=create
+
+      - name: Terraform workflow triggered
+        run: |
+          echo "Terraform workflow has been triggered."
+          echo "Terraform will create/update the AWS infrastructure."
