@@ -7,13 +7,22 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+
+    # Create both HTTP and HTTPS listeners
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+
+    # ACM certificate for app.magnitdev.com
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:755729228993:certificate/81555eba-4e01-44bc-9ec2-80e164adad05
+
+    # Redirect HTTP traffic to HTTPS
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
 
 spec:
   ingressClassName: alb
 
   rules:
-    - http:
+    - host: app.magnitdev.com
+      http:
         paths:
           - path: /
             pathType: Prefix
