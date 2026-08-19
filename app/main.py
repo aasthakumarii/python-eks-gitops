@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Hello World from AWS EKS!\n"
+    return "Hello World from AWS EKS! - GitOps v2\n"
 
 
 @app.route("/health")
