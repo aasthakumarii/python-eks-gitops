@@ -30,6 +30,41 @@ env:
   AWS_REGION: ap-south-1
 
 jobs:
+  debug-oidc:
+    name: Debug GitHub OIDC
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Inspect OIDC claims
+        shell: bash
+        run: |
+          set -e
+
+          TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" \
+            | jq -r '.value')
+
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f 2)
+
+          case $((${#PAYLOAD} % 4)) in
+            2) PAYLOAD="${PAYLOAD}==" ;;
+            3) PAYLOAD="${PAYLOAD}=" ;;
+          esac
+
+          echo "$PAYLOAD" | base64 -d | jq '{
+            iss,
+            aud,
+            sub,
+            repository,
+            repository_owner,
+            ref,
+            event_name
+          }'
   terraform:
     name: Terraform
     runs-on: ubuntu-latest
