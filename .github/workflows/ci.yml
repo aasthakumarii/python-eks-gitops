@@ -21,10 +21,6 @@ env:
 
 
 jobs:
-
-  # --------------------------------------------------
-  # 1. Python tests
-  # --------------------------------------------------
   test:
     name: Python Tests
     runs-on: ubuntu-latest
@@ -44,10 +40,6 @@ jobs:
       - name: Run tests
         run: pytest
 
-
-  # --------------------------------------------------
-  # 2. Build + Trivy security scan
-  # --------------------------------------------------
   build-and-scan:
     name: Build and Security Scan
     needs: test
@@ -72,10 +64,6 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
-
-  # --------------------------------------------------
-  # 3. Push image to ECR
-  # --------------------------------------------------
   push-to-ecr:
     name: Push Image to ECR
     needs: build-and-scan
@@ -107,32 +95,3 @@ jobs:
         run: |
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-
-
-  # --------------------------------------------------
-  # 4. Trigger Terraform only after CI succeeds
-  # --------------------------------------------------
-  trigger-terraform:
-    name: Trigger Terraform
-    needs: push-to-ecr
-
-    # Terraform should only automatically run after
-    # a successful push to main.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Trigger Terraform workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run terraform.yml \
-            --repo "${{ github.repository }}" \
-            --ref main \
-            -f action=create
-
-      - name: Terraform workflow triggered
-        run: |
-          echo "Terraform workflow has been triggered."
-          echo "Terraform will create/update the AWS infrastructure."
