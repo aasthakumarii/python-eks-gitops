@@ -7,26 +7,16 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-
-    # Create both HTTP and HTTPS listeners
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
-
-    # ACM certificate for app.magnitdev.com
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:755729228993:certificate/81555eba-4e01-44bc-9ec2-80e164adad05
-
-    # Redirect HTTP traffic to HTTPS
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
 
 spec:
   ingressClassName: alb
 
   rules:
-    - host: app.magnitdev.com
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix
-
             backend:
               service:
                 name: python-eks-gitops
