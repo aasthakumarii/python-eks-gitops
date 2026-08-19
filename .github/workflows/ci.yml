@@ -96,11 +96,14 @@ jobs:
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      - name: Update Kubernetes image tag
+      - name: Update Kubernetes image
         run: |
-          sed -i "s|image: .*python-eks-gitops:.*|image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:${{ github.sha }}|" k8s/deployment.yaml
+          sed -i "s|image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:.*|image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:${{ github.sha }}|" k8s/deployment.yaml
 
-      - name: Commit updated Kubernetes manifest
+          echo "Updated deployment:"
+          grep "image:" k8s/deployment.yaml
+
+      - name: Commit and push Kubernetes manifest
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -108,9 +111,9 @@ jobs:
           git add k8s/deployment.yaml
 
           if git diff --cached --quiet; then
-            echo "No manifest changes"
+            echo "No changes to commit"
             exit 0
           fi
 
-          git commit -m "chore: update image to ${{ github.sha }}"
+          git commit -m "chore: deploy image ${{ github.sha }}"
           git push
