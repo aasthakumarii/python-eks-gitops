@@ -136,3 +136,4 @@ jobs:
         run: |
           echo "Terraform workflow has been triggered."
           echo "Terraform will create/update the AWS infrastructure."
+          
