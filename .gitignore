@@ -6,3 +6,13 @@ venv/
 .env
 .idea/
 .vscode/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Environment-specific Terraform values
+terraform/terraform.tfvars
