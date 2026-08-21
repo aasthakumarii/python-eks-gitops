@@ -21,3 +21,4 @@ node_max_size     = 2
 
 # Replace with YOUR current public IP.
 admin_cidr = "122.179.91.27/32"
+admin_principal_arn = "arn:aws:iam::755729228993:user/Aastha"
