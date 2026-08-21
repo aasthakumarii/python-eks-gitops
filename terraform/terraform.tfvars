@@ -20,4 +20,4 @@ node_min_size     = 1
 node_max_size     = 2
 
 # Replace with YOUR current public IP.
-admin_cidr = "122.181.102.119/32"
+admin_cidr = "122.179.91.27/32"
