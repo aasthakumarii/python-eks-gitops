@@ -47,7 +47,8 @@ resource "aws_eks_cluster" "main" {
   version  = var.kubernetes_version
 
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
   }
 
   vpc_config {
@@ -129,7 +130,7 @@ resource "aws_iam_role" "eks_nodes" {
 
 
 # --------------------------------------------------
-# Worker Node IAM Policies
+# EKS Worker Node IAM Policies
 # --------------------------------------------------
 
 resource "aws_iam_role_policy_attachment" "worker_node" {
