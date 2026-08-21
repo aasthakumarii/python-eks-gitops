@@ -62,6 +62,11 @@ variable "admin_cidr" {
   type        = string
 }
 
+variable "admin_principal_arn" {
+  description = "IAM principal granted EKS administrator access"
+  type        = string
+}
+
 
 # --------------------------------------------------
 # Node Group Configuration

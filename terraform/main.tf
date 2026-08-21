@@ -24,13 +24,11 @@ module "eks" {
   project_name       = var.project_name
   kubernetes_version = var.kubernetes_version
 
-  # Networking dependency from VPC module
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  # Restrict EKS API access
-  admin_cidr = var.admin_cidr
+  admin_cidr          = var.admin_cidr
+  admin_principal_arn = var.admin_principal_arn
 
-  # Worker node configuration
   node_group_name    = var.node_group_name
   node_instance_type = var.node_instance_type
   capacity_type      = var.capacity_type

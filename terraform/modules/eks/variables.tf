@@ -28,6 +28,11 @@ variable "admin_cidr" {
   }
 }
 
+variable "admin_principal_arn" {
+  description = "IAM principal that receives EKS cluster administrator access"
+  type        = string
+}
+
 variable "node_group_name" {
   description = "EKS managed node group name"
   type        = string

@@ -46,17 +46,16 @@ resource "aws_eks_cluster" "main" {
   role_arn = aws_iam_role.eks_cluster.arn
   version  = var.kubernetes_version
 
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   vpc_config {
-    # EKS is deployed into private subnets
     subnet_ids = var.private_subnet_ids
 
-    # Public endpoint remains enabled so your laptop can connect.
-    endpoint_public_access = true
-
-    # Also allow access from inside the VPC.
+    endpoint_public_access  = true
     endpoint_private_access = true
 
-    # Restrict public EKS API access to your personal public IP.
     public_access_cidrs = [
       var.admin_cidr
     ]
@@ -69,6 +68,33 @@ resource "aws_eks_cluster" "main" {
   tags = {
     Name    = var.cluster_name
     Project = var.project_name
+  }
+}
+
+
+# --------------------------------------------------
+# EKS Admin Access Entry
+# --------------------------------------------------
+
+resource "aws_eks_access_entry" "admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = var.admin_principal_arn
+  type          = "STANDARD"
+}
+
+
+# --------------------------------------------------
+# EKS Admin Access Policy
+# --------------------------------------------------
+
+resource "aws_eks_access_policy_association" "admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_eks_access_entry.admin.principal_arn
+
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
   }
 }
 
@@ -111,12 +137,10 @@ resource "aws_iam_role_policy_attachment" "worker_node" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
-
 resource "aws_iam_role_policy_attachment" "cni" {
   role       = aws_iam_role.eks_nodes.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
-
 
 resource "aws_iam_role_policy_attachment" "ecr" {
   role       = aws_iam_role.eks_nodes.name
@@ -133,7 +157,6 @@ resource "aws_eks_node_group" "main" {
   node_group_name = var.node_group_name
   node_role_arn   = aws_iam_role.eks_nodes.arn
 
-  # Worker nodes remain inside private subnets
   subnet_ids = var.private_subnet_ids
 
   instance_types = [
