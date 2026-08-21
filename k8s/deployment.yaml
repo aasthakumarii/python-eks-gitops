@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: python-eks-gitops
-          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:d5a34b2db7602170b966a37d76871f485e339f5c
+          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:239737de04570349b819e77c9e877782ceab904a
           ports:
             - containerPort: 5000
           resources:
