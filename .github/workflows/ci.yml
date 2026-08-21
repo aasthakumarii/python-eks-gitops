@@ -39,10 +39,34 @@ jobs:
 
       - name: Run tests
         run: pytest
+  sast:
+    name: Bandit SAST Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit SAST scan
+        run: |
+          bandit -r . \
+            -x ./tests,./.venv,./venv \
+            -ll
+
 
   build-and-scan:
     name: Build and Security Scan
-    needs: test
+    needs: 
+      - test
+      - sast
     runs-on: ubuntu-latest
 
     steps:
