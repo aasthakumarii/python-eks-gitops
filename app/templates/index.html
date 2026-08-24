@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A service catalog for teams running on EKS.">
+  <title>Service Catalog</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Service Catalog home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span>Service Catalog</span>
+    </a>
+    <span class="status"><span class="status-dot"></span>Platform healthy</span>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">ENGINEERING PLATFORM</p>
+      <h1 id="page-title">Find the services your teams depend on.</h1>
+      <p class="hero-copy">A shared, searchable view of the applications running across your platform.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="#catalog">Browse catalog</a>
+        <button class="button button-secondary" type="button" data-open-form>Validate a service</button>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Catalog summary">
+      <div><strong id="service-count">—</strong><span>Services registered</span></div>
+      <div><strong id="team-count">—</strong><span>Owning teams</span></div>
+      <div><strong>100%</strong><span>Platform available</span></div>
+    </section>
+
+    <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">CATALOG</p>
+          <h2 id="catalog-title">Your services</h2>
+        </div>
+        <label class="search-label">Search services
+          <input id="search" type="search" placeholder="Name, team, or tag" autocomplete="off">
+        </label>
+      </div>
+      <p class="message" id="catalog-message" role="status">Loading services…</p>
+      <div class="service-grid" id="service-grid"></div>
+    </section>
+  </main>
+
+  <dialog id="validation-dialog" aria-labelledby="dialog-title">
+    <form id="validation-form" method="dialog">
+      <div class="dialog-header">
+        <div><p class="eyebrow">SERVICE DEFINITION</p><h2 id="dialog-title">Validate before you register</h2></div>
+        <button class="icon-button" type="button" data-close-form aria-label="Close">×</button>
+      </div>
+      <label>Service name<input name="name" maxlength="80" placeholder="orders-api" required></label>
+      <label>Owning team<input name="owner" maxlength="80" placeholder="commerce" required></label>
+      <label>Description<textarea name="description" maxlength="280" placeholder="What does this service do?"></textarea></label>
+      <label>Tags <span class="hint">(comma separated)</span><input name="tags" maxlength="309" placeholder="python, api"></label>
+      <p class="form-result" id="form-result" role="status"></p>
+      <div class="dialog-actions"><button class="button button-primary" type="submit">Validate service</button></div>
+    </form>
+  </dialog>
+
+  <footer>Service Catalog · version {{ version }}</footer>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ import os
 from http import HTTPStatus
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 MAX_SERVICE_NAME_LENGTH = 80
@@ -22,7 +22,11 @@ def create_app() -> Flask:
     application.config["JSON_SORT_KEYS"] = False
 
     @application.get("/")
-    def index() -> tuple[Any, int]:
+    def index() -> str:
+        return render_template("index.html", version=os.getenv("APP_VERSION", "dev"))
+
+    @application.get("/api/v1")
+    def api_index() -> tuple[Any, int]:
         return jsonify({"name": "service-catalog-api", "version": os.getenv("APP_VERSION", "dev"), "endpoints": ["GET /health", "GET /api/v1/services", "POST /api/v1/services/validate"]}), HTTPStatus.OK
 
     @application.get("/health")

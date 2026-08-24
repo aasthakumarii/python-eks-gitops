@@ -10,8 +10,15 @@ def client():
     return app.test_client()
 
 
-def test_index_describes_the_api(client):
+def test_index_renders_the_service_catalog_dashboard(client):
     response = client.get("/")
+    assert response.status_code == 200
+    assert b"Service Catalog" in response.data
+    assert b"Browse catalog" in response.data
+
+
+def test_api_index_describes_the_api(client):
+    response = client.get("/api/v1")
     assert response.status_code == 200
     assert response.json["name"] == "service-catalog-api"
 
