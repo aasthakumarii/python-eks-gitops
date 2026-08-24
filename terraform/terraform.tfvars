@@ -19,5 +19,5 @@ node_desired_size = 2
 node_min_size     = 1
 node_max_size     = 2
 
-admin_cidr          = "122.179.91.27/32"
+admin_cidr          = "122.181.102.43/32"
 admin_principal_arn = "arn:aws:iam::755729228993:user/Aastha"
