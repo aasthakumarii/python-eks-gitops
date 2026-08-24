@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: python-eks-gitops
-          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:6be2c1c168e7871976b5925d2e8c93926a377a8a
+          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:2706e2c23c4f595e6e24f71e0db12e1f516ed0c3
           ports:
             - containerPort: 5000
           securityContext:
