@@ -1,12 +1,12 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 WORKDIR /app
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
-    && addgroup --system --gid 10001 app \
-    && adduser --system --uid 10001 --ingroup app --home /app app
+    && addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app
 
 COPY app ./app
 
