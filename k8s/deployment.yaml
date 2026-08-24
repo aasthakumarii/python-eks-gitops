@@ -29,11 +29,11 @@ spec:
       containers:
         - name: python-eks-gitops
 
-          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:46bf417ed3643fba1e1873c294fa03aed3e27476
+          image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:13bf885c4bea55d520a6c5a1a00238ab42bac2fd
 
           env:
             - name: APP_VERSION
-              value: "46bf417ed3643fba1e1873c294fa03aed3e27476"
+              value: "13bf885c4bea55d520a6c5a1a00238ab42bac2fd"
 
           ports:
             - containerPort: 5000
