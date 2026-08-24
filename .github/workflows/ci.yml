@@ -18,9 +18,15 @@ env:
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: python-eks-gitops
   ECR_REGISTRY: 755729228993.dkr.ecr.ap-south-1.amazonaws.com
+  APP_URL: https://app.alffino.online
 
 
 jobs:
+
+  # --------------------------------------------------
+  # Python Tests
+  # --------------------------------------------------
+
   test:
     name: Python Tests
     runs-on: ubuntu-latest
@@ -39,6 +45,12 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+
+  # --------------------------------------------------
+  # Bandit SAST
+  # --------------------------------------------------
+
   sast:
     name: Bandit SAST Scan
     runs-on: ubuntu-latest
@@ -62,11 +74,16 @@ jobs:
             -ll
 
 
+  # --------------------------------------------------
+  # Docker Build + Trivy
+  # --------------------------------------------------
+
   build-and-scan:
     name: Build and Security Scan
-    needs: 
+    needs:
       - test
       - sast
+
     runs-on: ubuntu-latest
 
     steps:
@@ -88,44 +105,128 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
+
+  # --------------------------------------------------
+  # Push + GitOps Deployment + Automated Rollback
+  # --------------------------------------------------
+
   push-to-ecr:
-    name: Push Image to ECR
+    name: Deploy with Automatic Rollback
     needs: build-and-scan
+
+    # Pull requests run tests/security checks,
+    # but only pushes to main deploy.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+
+      # --------------------------------------------------
+      # Save currently stable deployment
+      # --------------------------------------------------
+
+      - name: Capture current stable image
+        run: |
+          PREVIOUS_IMAGE=$(grep -m1 "image:" k8s/deployment.yaml | awk '{print $2}')
+
+          PREVIOUS_VERSION=$(grep -A1 "name: APP_VERSION" \
+            k8s/deployment.yaml \
+            | tail -1 \
+            | awk '{print $2}' \
+            | tr -d '"')
+
+          echo "Previous image: $PREVIOUS_IMAGE"
+          echo "Previous version: $PREVIOUS_VERSION"
+
+          echo "PREVIOUS_IMAGE=$PREVIOUS_IMAGE" >> "$GITHUB_ENV"
+          echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> "$GITHUB_ENV"
+
+
+      # --------------------------------------------------
+      # AWS Authentication
+      # --------------------------------------------------
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::755729228993:role/GitHubActions-ECR-Push
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
+
+      # --------------------------------------------------
+      # ECR Login
+      # --------------------------------------------------
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+
+      # --------------------------------------------------
+      # Build production image
+      # --------------------------------------------------
 
       - name: Build Docker image
         run: |
           docker build \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
 
+
+      # --------------------------------------------------
+      # Push immutable SHA image
+      # --------------------------------------------------
+
       - name: Push Docker image
         run: |
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      - name: Update Kubernetes image
-        run: |
-          sed -i "s|image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:.*|image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:${{ github.sha }}|" k8s/deployment.yaml
 
-          echo "Updated deployment:"
+      # --------------------------------------------------
+      # Update GitOps manifest
+      # --------------------------------------------------
+
+      - name: Update Kubernetes deployment
+        run: |
+          NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
+
+          echo "Deploying image:"
+          echo "$NEW_IMAGE"
+
+          sed -i \
+            "s|^[[:space:]]*image: .*|          image: $NEW_IMAGE|" \
+            k8s/deployment.yaml
+
+          sed -i \
+            '/name: APP_VERSION/{n;s|value: ".*"|value: "${{ github.sha }}"|;}' \
+            k8s/deployment.yaml
+
+          echo
+          echo "Updated image:"
           grep "image:" k8s/deployment.yaml
+
+          echo
+          echo "Updated APP_VERSION:"
+          grep -A1 "name: APP_VERSION" k8s/deployment.yaml
+
+
+      # --------------------------------------------------
+      # Commit deployment desired state
+      # --------------------------------------------------
 
       - name: Commit and push Kubernetes manifest
         run: |
@@ -135,9 +236,204 @@ jobs:
           git add k8s/deployment.yaml
 
           if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
+            echo "No manifest changes to commit"
+          else
+            git commit -m "chore: deploy image ${{ github.sha }}"
+            git push
           fi
 
-          git commit -m "chore: deploy image ${{ github.sha }}"
+
+      # --------------------------------------------------
+      # Wait for ArgoCD + verify deployment
+      # --------------------------------------------------
+
+      - name: Verify deployed application
+        id: verify
+        continue-on-error: true
+        run: |
+          echo "Waiting for ArgoCD to deploy:"
+          echo "${{ github.sha }}"
+
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            echo
+            echo "Verification attempt $attempt/$MAX_ATTEMPTS"
+
+            HEALTH_RESPONSE=$(curl \
+              --silent \
+              --show-error \
+              --fail \
+              --max-time 10 \
+              "$APP_URL/health" || true)
+
+            VERSION_RESPONSE=$(curl \
+              --silent \
+              --show-error \
+              --fail \
+              --max-time 10 \
+              "$APP_URL/api/v1" || true)
+
+            echo "Health response:"
+            echo "$HEALTH_RESPONSE"
+
+            echo "Version response:"
+            echo "$VERSION_RESPONSE"
+
+            HEALTHY=$(echo "$HEALTH_RESPONSE" | \
+              python3 -c \
+              'import sys,json
+          try:
+              print(json.load(sys.stdin).get("status", ""))
+          except Exception:
+              print("")')
+
+            LIVE_VERSION=$(echo "$VERSION_RESPONSE" | \
+              python3 -c \
+              'import sys,json
+          try:
+              print(json.load(sys.stdin).get("version", ""))
+          except Exception:
+              print("")')
+
+            echo "Health status: $HEALTHY"
+            echo "Live version:  $LIVE_VERSION"
+            echo "Expected:      ${{ github.sha }}"
+
+            if [ "$HEALTHY" = "healthy" ] && \
+               [ "$LIVE_VERSION" = "${{ github.sha }}" ]; then
+
+              echo
+              echo "Deployment verification successful."
+              exit 0
+            fi
+
+            echo "New version is not ready yet."
+            sleep "$SLEEP_SECONDS"
+          done
+
+          echo
+          echo "Deployment verification failed."
+          exit 1
+
+
+      # --------------------------------------------------
+      # Automatic GitOps rollback
+      # --------------------------------------------------
+
+      - name: Automatic rollback
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "Deployment failed."
+          echo "Starting automatic GitOps rollback."
+
+          echo
+          echo "Failed image:"
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
+
+          echo
+          echo "Restoring image:"
+          echo "$PREVIOUS_IMAGE"
+
+          git pull --rebase origin main
+
+          sed -i \
+            "s|^[[:space:]]*image: .*|          image: $PREVIOUS_IMAGE|" \
+            k8s/deployment.yaml
+
+          sed -i \
+            '/name: APP_VERSION/{n;s|value: ".*"|value: "'"$PREVIOUS_VERSION"'"|;}' \
+            k8s/deployment.yaml
+
+          echo
+          echo "Rollback manifest:"
+          grep "image:" k8s/deployment.yaml
+          grep -A1 "name: APP_VERSION" k8s/deployment.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/deployment.yaml
+
+          git commit \
+            -m "rollback: restore $PREVIOUS_VERSION after failed ${{ github.sha }}"
+
           git push
+
+
+      # --------------------------------------------------
+      # Verify rollback
+      # --------------------------------------------------
+
+      - name: Verify rollback recovery
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "Waiting for ArgoCD to restore:"
+          echo "$PREVIOUS_VERSION"
+
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            echo "Rollback verification attempt $attempt/$MAX_ATTEMPTS"
+
+            HEALTH_RESPONSE=$(curl \
+              --silent \
+              --show-error \
+              --fail \
+              --max-time 10 \
+              "$APP_URL/health" || true)
+
+            VERSION_RESPONSE=$(curl \
+              --silent \
+              --show-error \
+              --fail \
+              --max-time 10 \
+              "$APP_URL/api/v1" || true)
+
+            HEALTHY=$(echo "$HEALTH_RESPONSE" | \
+              python3 -c \
+              'import sys,json
+          try:
+              print(json.load(sys.stdin).get("status", ""))
+          except Exception:
+              print("")')
+
+            LIVE_VERSION=$(echo "$VERSION_RESPONSE" | \
+              python3 -c \
+              'import sys,json
+          try:
+              print(json.load(sys.stdin).get("version", ""))
+          except Exception:
+              print("")')
+
+            echo "Health:          $HEALTHY"
+            echo "Live version:    $LIVE_VERSION"
+            echo "Expected stable: $PREVIOUS_VERSION"
+
+            if [ "$HEALTHY" = "healthy" ] && \
+               [ "$LIVE_VERSION" = "$PREVIOUS_VERSION" ]; then
+
+              echo
+              echo "Automatic rollback completed successfully."
+              exit 0
+            fi
+
+            sleep "$SLEEP_SECONDS"
+          done
+
+          echo "Rollback recovery verification failed."
+          exit 1
+
+
+      # --------------------------------------------------
+      # Mark original deployment as failed
+      # --------------------------------------------------
+
+      - name: Fail workflow after automatic rollback
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "The new deployment failed health/version validation."
+          echo "The previous stable version was restored automatically."
+          exit 1
