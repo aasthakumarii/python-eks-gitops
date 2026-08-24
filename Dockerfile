@@ -4,14 +4,14 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
+    && addgroup --system --gid 10001 app \
+    && adduser --system --uid 10001 --ingroup app --home /app app
 
 COPY app ./app
 
+USER app
+
 EXPOSE 5000
 
-CMD ["python", "app/main.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app.main:app"]

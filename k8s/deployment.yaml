@@ -14,11 +14,38 @@ spec:
       labels:
         app: python-eks-gitops
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: python-eks-gitops
           image: 755729228993.dkr.ecr.ap-south-1.amazonaws.com/python-eks-gitops:35b93e9bb977ddda2c74e8d8ddca34063b486dc2
           ports:
             - containerPort: 5000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 20
           resources:
             requests:
               cpu: "100m"
@@ -26,3 +53,7 @@ spec:
             limits:
               cpu: "500m"
               memory: "256Mi"
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
