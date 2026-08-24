@@ -10,11 +10,11 @@ def client():
     return app.test_client()
 
 
-def test_index_renders_the_service_catalog_dashboard(client):
+def test_index_renders_the_portfolio(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"Service Catalog" in response.data
-    assert b"Browse catalog" in response.data
+    assert b"Aastha Kumar" in response.data
+    assert b"EKS GitOps" in response.data
 
 
 def test_api_index_describes_the_api(client):

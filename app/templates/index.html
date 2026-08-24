@@ -3,67 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A service catalog for teams running on EKS.">
-  <title>Service Catalog</title>
+  <meta name="description" content="Cloud and DevOps portfolio.">
+  <title>Aastha Kumar | Cloud & DevOps Engineer</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="Service Catalog home">
-      <span class="brand-mark" aria-hidden="true">S</span>
-      <span>Service Catalog</span>
-    </a>
-    <span class="status"><span class="status-dot"></span>Platform healthy</span>
-  </header>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="monogram" href="#top" aria-label="Home">AK</a>
+      <nav aria-label="Primary navigation">
+        <a href="#work">Work</a>
+        <a href="#skills">Skills</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <a class="availability" href="#contact"><span></span> Available for opportunities</a>
+    </header>
 
-  <main>
-    <section class="hero" aria-labelledby="page-title">
-      <p class="eyebrow">ENGINEERING PLATFORM</p>
-      <h1 id="page-title">Find the services your teams depend on.</h1>
-      <p class="hero-copy">A shared, searchable view of the applications running across your platform.</p>
-      <div class="hero-actions">
-        <a class="button button-primary" href="#catalog">Browse catalog</a>
-        <button class="button button-secondary" type="button" data-open-form>Validate a service</button>
-      </div>
-    </section>
-
-    <section class="metrics" aria-label="Catalog summary">
-      <div><strong id="service-count">—</strong><span>Services registered</span></div>
-      <div><strong id="team-count">—</strong><span>Owning teams</span></div>
-      <div><strong>100%</strong><span>Platform available</span></div>
-    </section>
-
-    <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">CATALOG</p>
-          <h2 id="catalog-title">Your services</h2>
+    <main id="top">
+      <section class="intro" aria-labelledby="intro-title">
+        <p class="kicker">CLOUD · PLATFORM · AUTOMATION</p>
+        <div class="intro-grid">
+          <h1 id="intro-title">I build reliable<br><em>cloud systems.</em></h1>
+          <div class="intro-copy">
+            <p>Cloud and DevOps engineer focused on creating secure, repeatable delivery platforms that let teams ship with confidence.</p>
+            <a class="text-link" href="#work">Explore selected work <span aria-hidden="true">↓</span></a>
+          </div>
         </div>
-        <label class="search-label">Search services
-          <input id="search" type="search" placeholder="Name, team, or tag" autocomplete="off">
-        </label>
-      </div>
-      <p class="message" id="catalog-message" role="status">Loading services…</p>
-      <div class="service-grid" id="service-grid"></div>
-    </section>
-  </main>
+        <div class="hero-art" aria-hidden="true">
+          <span class="orb orb-one"></span><span class="orb orb-two"></span><span class="orb orb-three"></span>
+          <div class="grid-lines"></div><p>DESIGNED FOR<br>DEPLOYMENT</p>
+        </div>
+      </section>
 
-  <dialog id="validation-dialog" aria-labelledby="dialog-title">
-    <form id="validation-form" method="dialog">
-      <div class="dialog-header">
-        <div><p class="eyebrow">SERVICE DEFINITION</p><h2 id="dialog-title">Validate before you register</h2></div>
-        <button class="icon-button" type="button" data-close-form aria-label="Close">×</button>
-      </div>
-      <label>Service name<input name="name" maxlength="80" placeholder="orders-api" required></label>
-      <label>Owning team<input name="owner" maxlength="80" placeholder="commerce" required></label>
-      <label>Description<textarea name="description" maxlength="280" placeholder="What does this service do?"></textarea></label>
-      <label>Tags <span class="hint">(comma separated)</span><input name="tags" maxlength="309" placeholder="python, api"></label>
-      <p class="form-result" id="form-result" role="status"></p>
-      <div class="dialog-actions"><button class="button button-primary" type="submit">Validate service</button></div>
-    </form>
-  </dialog>
+      <section class="statement">
+        <p class="section-number">01 / WHAT I DO</p>
+        <p class="large-copy">Turning infrastructure complexity into dependable developer experiences.</p>
+      </section>
 
-  <footer>Service Catalog · version {{ version }}</footer>
-  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+      <section class="work" id="work" aria-labelledby="work-title">
+        <div class="section-heading"><p class="section-number">02 / SELECTED WORK</p><h2 id="work-title">Built for scale.<br>Designed to last.</h2></div>
+        <div class="projects">
+          <article class="project project-dark"><div><p class="project-type">PLATFORM ENGINEERING</p><h3>EKS GitOps<br>Platform</h3></div><p>Infrastructure as code, automated image delivery, and Argo CD reconciliation for Kubernetes workloads.</p><span class="project-index">01</span></article>
+          <article class="project project-light"><div><p class="project-type">APPLICATION DELIVERY</p><h3>Service Catalog<br>API</h3></div><p>A container-first Python service with operational health checks, automated tests, and security scanning.</p><span class="project-index">02</span></article>
+          <article class="project project-accent"><div><p class="project-type">CLOUD AUTOMATION</p><h3>Secure CI/CD<br>Workflow</h3></div><p>Short-lived cloud credentials, image scanning, and deployment updates built into every release.</p><span class="project-index">03</span></article>
+        </div>
+      </section>
+
+      <section class="skills" id="skills" aria-labelledby="skills-title">
+        <p class="section-number">03 / TOOLKIT</p>
+        <div><h2 id="skills-title">The right tools<br>for resilient systems.</h2><ul><li>Amazon Web Services</li><li>Kubernetes & EKS</li><li>Terraform</li><li>Docker</li><li>GitHub Actions</li><li>Argo CD</li><li>Python</li><li>Observability</li></ul></div>
+      </section>
+
+      <section class="contact" id="contact" aria-labelledby="contact-title">
+        <p class="section-number">04 / LET'S CONNECT</p>
+        <h2 id="contact-title">Have a platform<br>problem to solve?</h2>
+        <a class="email-link" href="mailto:hello@example.com">hello@example.com <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer><span>© {{ version }} Aastha Kumar</span><span>Cloud & DevOps Engineer</span></footer>
+  </div>
 </body>
 </html>
